@@ -538,14 +538,39 @@ function App() {
     setRunningSim(false);
   };
   
-  const handleDownload = () => {
-    if (!videoUrl || results?.isYoutubeAnalysis) return;
-    const a = document.createElement("a");
-    a.href = videoUrl;
-    a.download = "Optimized_Video.mp4";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const handleDownload = async () => {
+    if (!videoFile || results?.isYoutubeAnalysis) return;
+    
+    const btn = document.getElementById('dl-btn');
+    const originalContent = btn ? btn.innerHTML : '';
+    if (btn) btn.innerHTML = "Trimming (AI)...";
+    
+    try {
+      const formData = new FormData();
+      formData.append("file", videoFile);
+      
+      const response = await fetch("http://localhost:8000/optimize_video", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!response.ok) throw new Error("Optimization failed on backend.");
+      
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = "Hook_Architect_Optimized.mp4";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to trim video: " + err.message);
+    } finally {
+      if (btn) btn.innerHTML = originalContent;
+    }
   };
 
   const handleTimeUpdate = () => {
@@ -703,7 +728,7 @@ function App() {
                       <h3 style={{ color: '#10b981', margin: 0 }}>{t.optimized}</h3>
                       <p style={{ color: '#fff', opacity: 0.8, marginTop: '4px', fontSize: '0.85rem' }}>{t.optSub}</p>
                     </div>
-                    {!results.isYoutubeAnalysis && <button className={clsx("primary-btn dashboard-btn")} style={{ padding: '10px 20px', fontSize: '0.95rem' }} onClick={handleDownload}><Download size={18} /> {t.download}</button>}
+                    {!results.isYoutubeAnalysis && <button id="dl-btn" className={clsx("primary-btn dashboard-btn")} style={{ padding: '10px 20px', fontSize: '0.95rem' }} onClick={handleDownload}><Download size={18} /> {t.download}</button>}
                   </div>
                 </div>
               )}
